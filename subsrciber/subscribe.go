@@ -101,7 +101,7 @@ func parseEvents(events []string, log types.Log, c *Contract) *Event {
 	event := ""
 
 	// iterates over the events provided the param
-	// if the event name matches the name retrieved from the contract's events map, then assign the name to event and break the loop
+	// if the event name (from events param) matches the name retrieved from the contract's events map, then assign the name to event and break the loop
 	for _, e := range events {
 		if e == name {
 			event = name
@@ -114,7 +114,7 @@ func parseEvents(events []string, log types.Log, c *Contract) *Event {
 		return nil
 	}
 
-	// decoed the log data using event name, abi
+	// decoded the log data using event name, abi
 	data, err := unpackLog(event, log.Data, c.ABI)
 	if err != nil || data == nil {
 		return nil
