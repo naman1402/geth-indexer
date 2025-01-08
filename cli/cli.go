@@ -12,6 +12,7 @@ import (
 func Run() *Config {
 	// println("hello world")
 
+	// 1. tells viper where to find the configuration file and what format to expect
 	//SetConfigFile explicitly defines the path, name and extension of the config file. Viper will use this and not check any of the config paths.
 	viper.SetConfigFile("config.yaml")
 	// AddConfigPath adds a path for Viper to search for the config file in. Can be called multiple times to define multiple search paths.
@@ -21,6 +22,7 @@ func Run() *Config {
 	if err := viper.ReadInConfig(); err != nil {
 		log.Printf("failed to read config file: %v\n", err)
 	}
+	// Map to struct Config
 	// unmarshal config into Struct (config),
 	err := viper.Unmarshal(&config)
 	if err != nil {

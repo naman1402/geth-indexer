@@ -24,7 +24,7 @@ var (
 func filter(client *ethclient.Client, opts *cli.Config) []types.Log {
 
 	// if from/to field in query is not zero, assign it to from/to variables
-	// or else set them as nil
+	// or else set them as nil (latest block)
 	if opts.Query.From != 0 {
 		from = big.NewInt(int64(opts.Query.From))
 	} else {

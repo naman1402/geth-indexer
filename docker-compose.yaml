@@ -1,0 +1,20 @@
+version: "3"
+services:
+  # Custom Application Service
+  app:
+    build:
+      dockerfile: "Dockerfile"  # Uses local Dockerfile
+      context: .               # Build context is current directory
+    ports:
+      - "8080"                # Exposes port 8080
+
+  # PostgreSQL Database Service
+  postgres:
+    image: "postgres:15.2"    # Uses official Postgres image
+    ports:
+      - "5432"               # Exposes default Postgres port
+    restart: always          # Automatic restart policy
+    environment:            # Database configuration
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGDATA=var/lib/postgres/data/pgdata
