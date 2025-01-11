@@ -7,6 +7,13 @@ services:
       context: .               # Build context is current directory
     ports:
       - "8080"                # Exposes port 8080
+    command: [
+      "-address=${CONTRACT_ADDRESS}",
+      "-from",
+      "-to",
+      "Transfer",
+      "Approval"
+    ]
 
   # PostgreSQL Database Service
   postgres:
@@ -16,5 +23,13 @@ services:
     restart: always          # Automatic restart policy
     environment:            # Database configuration
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=password123
       - PGDATA=var/lib/postgres/data/pgdata
+
+
+# docker compose build --no-cache
+# docker compose up -d
+# docker compose ps
+# docker compose logs
+# docker compose down
+# docker compose 

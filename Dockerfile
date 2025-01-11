@@ -5,4 +5,4 @@ RUN go mod download
 COPY . .
 RUN go build -o geth-indexer
 RUN chmod 777 ./geth-indexer
-CMD [ "./geth-indexer" ]
+ENTRYPOINT [ "./geth-indexer" ]

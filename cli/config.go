@@ -25,23 +25,23 @@ type QueryFlagOptions struct {
 // DatabaseConfig holds the configuration for the database connection.
 type DatabaseConfig struct {
 	// DBHost is the hostname or IP address of the database server.
-	DBHost string
+	DBHost string `mapstructure:"host"`
 	// DBPort is the port number of the database server.
-	DBPort int
+	DBPort int `mapstructure:"port"`
 	// DBUser is the username for the database connection.
-	DBUser string
+	DBUser string `mapstructure:"user"`
 	// DBPassword is the password for the database connection.
-	DBPassword string
+	DBPassword string `mapstructure:"password"`
 	// DBName is the name of the database.
-	DBName string
+	DBName string `mapstructure:"name"`
 }
 
 // APIConfig holds the configuration for the API endpoints.
 type APIConfig struct {
 	// EtherscanAPI is the API key for the Etherscan API.
-	EtherscanAPI string
+	EtherscanAPI string `mapstructure:"etherscan"`
 	// EthNodeURL is the URL of the Ethereum node.
-	EthNodeURL string
+	EthNodeURL string `mapstructure:"ethnode"`
 }
 
 // ParseFlags parses the command-line flags and returns a QueryFlagOptions struct
