@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"flag"
-	"fmt"
 	"log"
 	"os"
-	"strings"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/naman1402/geth-indexer/cli"
 	"github.com/naman1402/geth-indexer/indexer"
@@ -74,15 +73,13 @@ func exec() int {
 // stopSignal listens for user input on the console and sends a signal to the quitChannel
 // when the user types "stop". This allows the main program to gracefully exit.
 func stopSignal(quitChannel chan bool) {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("input stop to exit from application")
-	text, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("error reading input, try again or press ctrl+c to exit")
-	}
-
-	if strings.TrimSpace(text) == "stop" {
+	// Wait for either OS signal or manual stop
+	select {
+	case <-sigChan:
 		quitChannel <- true
 	}
+
 }

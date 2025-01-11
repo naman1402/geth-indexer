@@ -2,6 +2,7 @@ package cli
 
 import (
 	"log"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -10,6 +11,10 @@ import (
 // unmarshaling the configuration into a Config struct, and parsing any command-line flags.
 // It returns a pointer to the initialized Config struct.
 func Run() *Config {
+
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	// println("hello world")
 
 	// 1. tells viper where to find the configuration file and what format to expect

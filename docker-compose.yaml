@@ -5,26 +5,38 @@ services:
     build:
       dockerfile: "Dockerfile"  # Uses local Dockerfile
       context: .               # Build context is current directory
+    networks:
+      - app-network
+    stdin_open: true        # Allows stdin to be open for interactive commands
+    tty: true               # Allocates a pseudo-TTY
     ports:
-      - "8080"                # Exposes port 8080
+      - "8080:8080"                # Exposes port 8080
     command: [
-      "-address=${CONTRACT_ADDRESS}",
-      "-from",
-      "-to",
+      "-address=0xdBFC942264f5CebF8C59f4065af2EFfB92D12475",
+      "-from=100000000",
+      "-to=100010000",
       "Transfer",
       "Approval"
     ]
+    depends_on:
+      - postgres
 
   # PostgreSQL Database Service
   postgres:
     image: "postgres:15.2"    # Uses official Postgres image
+    networks:
+      - app-network
     ports:
-      - "5432"               # Exposes default Postgres port
+      - "5432:5432"             # Exposes default Postgres port
     restart: always          # Automatic restart policy
     environment:            # Database configuration
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password123
+      - POSTGRES_PASSWORD=postgres
       - PGDATA=var/lib/postgres/data/pgdata
+
+networks:
+  app-network:
+    driver: bridge
 
 
 # docker compose build --no-cache

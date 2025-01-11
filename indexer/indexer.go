@@ -8,6 +8,10 @@ import (
 	"github.com/naman1402/geth-indexer/subsrciber"
 )
 
+// Index is the main function that listens for events on the eventCh channel, generates SQL queries
+// using the generateQuery function, and executes those queries asynchronously using the executeQuery function.
+// The function runs in an infinite loop, waiting for events or a quit signal on the quit channel.
+// When a quit signal is received, the function returns.
 func Index(eventCh chan *subsrciber.Event, db *sql.DB, quit chan bool) {
 
 	for {
@@ -35,8 +39,8 @@ func generateQuery(table string, param *subsrciber.Event) string {
 
 	// iterate through the params.Data and append to the fieldSlice
 	// results in a complete list of all the fields that will be included in the SQL query
-	for fields := range param.Data {
-		fieldSlice = append(fieldSlice, fields)
+	for field := range param.Data {
+		fieldSlice = append(fieldSlice, field)
 	}
 	// concatenate the fields and fieldSlice into a single string
 	fields += strings.Join(fieldSlice, " ,")

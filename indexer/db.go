@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	_ "github.com/lib/pq"
+
 	"github.com/naman1402/geth-indexer/cli"
 )
 
@@ -13,6 +15,12 @@ func Connect(options cli.DatabaseConfig) (*sql.DB, error) {
 	postgreSQLInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", options.DBHost, options.DBPort, options.DBUser, options.DBPassword, options.DBName)
 	db, err := sql.Open("postgres", postgreSQLInfo)
 	if err != nil {
+		log.Printf("failed to connect to database: %s", err)
+		return nil, err
+	}
+	err = db.Ping()
+	if err != nil {
+		log.Printf("Failed to ping database: %s", err)
 		return nil, err
 	}
 
@@ -26,11 +34,11 @@ func executeQuery(db *sql.DB, query string) {
 	}
 }
 
-func indexingCheck(db *sql.DB, relation, column string) {
+// func indexingCheck(db *sql.DB, relation, column string) {
 
-	index := relation + "_" + column + "_idx"
-	_, err := db.Exec("CREATE INDEX %s IF NOT EXISTS  %s ON %s (%s)", index, index, relation, column)
-	if err != nil {
-		log.Println(err)
-	}
-}
+// 	index := relation + "_" + column + "_idx"
+// 	_, err := db.Exec("CREATE INDEX %s IF NOT EXISTS  %s ON %s (%s)", index, index, relation, column)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+// }
