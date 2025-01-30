@@ -1,0 +1,10 @@
+database:
+  host: "postgres"       # Hostname or IP address of the database server
+  port: 5432              # Port number of the database server
+  user: "postgres"        # Username for the database connection
+  password: "postgres" # Password for the database connection
+  name: "geth_indexer"       # Name of the database
+
+api:
+  etherscan: "JEBMAS8X6K75UR5GSDTSZVFNAHS8MC7FU" # API key for the Etherscan API
+  ethnode: "https://mainnet.infura.io/v3/<>" # URL of the Ethereum node

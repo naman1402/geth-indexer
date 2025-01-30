@@ -97,6 +97,9 @@ func parseEvents(events []string, log types.Log, c *Contract) *Event {
 	if !ok {
 		return nil
 	}
+	if name != "Transfer" && name != "Approval" {
+		return nil
+	}
 
 	event := ""
 

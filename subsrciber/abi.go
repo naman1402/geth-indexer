@@ -11,7 +11,13 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-const etherscanURL = "https://api-goerli.etherscan.io/api?module=contract&action=getabi&address=0xdBFC942264f5CebF8C59f4065af2EFfB92D12475&apikey=%s"
+const etherscanURL = "https://api.etherscan.io/api?module=contract&action=getabi&address=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2&apikey=%s"
+
+type EtherscanResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Result  string `json:"result"`
+}
 
 // fetchABI fetches the ABI (Application Binary Interface) from the Etherscan API
 // using the provided etherscanAPI string. It returns the parsed ABI.
@@ -38,26 +44,45 @@ func fetchABI(etherscanAPI string) abi.ABI {
 	if err != nil {
 		log.Printf("failed to read from http response body: %v\n", err)
 	}
+	log.Printf("raw etherscan response: %s\n", string(data))
+
+	// var res EtherscanResponse
+	// if err := json.Unmarshal(data, &res); err != nil {
+	// 	log.Printf("failed to unmarshal response: %v\n", err)
+	// }
+
 	// Convert ABI JSON (from resp) to Go-ethereum ABI type
-	a, err := abi.JSON(strings.NewReader(unmarshalToMapping(data)))
+	// a, err := abi.JSON(strings.NewReader(unmarshalToMapping(data)))
+	result := unmarshalToMapping(data)
+	if result == "" {
+		return abi.ABI{}
+	}
+	parsedABI, err := abi.JSON(strings.NewReader(result))
 	if err != nil {
 		log.Println(err)
+		return abi.ABI{}
 	}
 
-	return a
+	return parsedABI
 }
 
 // unmarshalToMapping unmarshals the provided data (assumed to be JSON) into a map[string]string
 // and returns the value of the "result" key from the map.
 func unmarshalToMapping(data []byte) string {
 
-	abiMap := make(map[string]string)
+	// abiMap := make(map[string]string)
+	var response struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+		Result  string `json:"result"`
+	}
 	// converts JSON response to Go map
 	// Unmarshal: JSON string -> Go data
-	err := json.Unmarshal(data, &abiMap)
+	err := json.Unmarshal(data, &response)
 	if err != nil {
 		log.Printf("failed to unmarshal data into map: %v\n", err)
 	}
+
 	// Returns only the "result" field containing actual ABI
-	return abiMap["result"]
+	return response.Result
 }

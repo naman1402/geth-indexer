@@ -11,15 +11,20 @@ services:
     tty: true               # Allocates a pseudo-TTY
     ports:
       - "8080:8080"                # Exposes port 8080
+    # environment:
+    #   - ETHERSCAN_NETWORK=mainnet
+    #   - ETH_NODE_URL=${ETH_NODE_URL}
+    #   - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
     command: [
-      "-address=0xdBFC942264f5CebF8C59f4065af2EFfB92D12475",
+      "-address=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
       "-from=100000000",
       "-to=100010000",
       "Transfer",
       "Approval"
     ]
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   # PostgreSQL Database Service
   postgres:
@@ -32,7 +37,13 @@ services:
     environment:            # Database configuration
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=geth_indexer
       - PGDATA=var/lib/postgres/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 networks:
   app-network:
@@ -41,7 +52,5 @@ networks:
 
 # docker compose build --no-cache
 # docker compose up -d
-# docker compose ps
-# docker compose logs
+# docker compose logs -f app
 # docker compose down
-# docker compose 
