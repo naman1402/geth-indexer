@@ -2,6 +2,8 @@ package cli
 
 import (
 	"log"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -11,29 +13,61 @@ import (
 // unmarshaling the configuration into a Config struct, and parsing any command-line flags.
 // It returns a pointer to the initialized Config struct.
 func Run() *Config {
+	dbConfig := DatabaseConfig{
+		DBHost:     getEnvOrDefault("DB_HOST", "localhost"),
+		DBPort:     getEnvAsIntOrDefault("DB_PORT", 5432),
+		DBUser:     getEnvOrDefault("DB_USER", "postgres"),
+		DBPassword: getEnvOrDefault("DB_PASSWORD", "postgres"),
+		DBName:     getEnvOrDefault("DB_NAME", "geth_indexer"),
+	}
+
+	apiConfig := APIConfig{
+		EtherscanAPI: os.Getenv("ETHERSCAN_API_KEY"),
+		EthNodeURL:   os.Getenv("RPC_URL"),
+	}
+
+	queryConfig := QueryFlagOptions{
+		Address: os.Getenv("CONTRACT_ADDRESS"),
+		From:    getEnvAsIntOrDefault("START_BLOCK", 0),
+		To:      getEnvAsIntOrDefault("END_BLOCK", 0),
+	}
 
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	// println("hello world")
 
-	// 1. tells viper where to find the configuration file and what format to expect
-	//SetConfigFile explicitly defines the path, name and extension of the config file. Viper will use this and not check any of the config paths.
 	viper.SetConfigFile("config.yaml")
-	// AddConfigPath adds a path for Viper to search for the config file in. Can be called multiple times to define multiple search paths.
 	viper.AddConfigPath(".")
 
 	var config Config
 	if err := viper.ReadInConfig(); err != nil {
 		log.Printf("failed to read config file: %v\n", err)
 	}
-	// Map to struct Config
-	// unmarshal config into Struct (config),
 	err := viper.Unmarshal(&config)
 	if err != nil {
 		log.Printf("failed to unmarshal config: %v\n", err)
 	}
 
 	config.Query = ParseFlags()
-	return &config
+	return &Config{
+		Query:    queryConfig,
+		Database: dbConfig,
+		API:      apiConfig,
+	}
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvAsIntOrDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
 }
