@@ -11,17 +11,19 @@ services:
     tty: true               # Allocates a pseudo-TTY
     ports:
       - "8080:8080"                # Exposes port 8080
-    # environment:
-    #   - ETHERSCAN_NETWORK=mainnet
-    #   - ETH_NODE_URL=${ETH_NODE_URL}
-    #   - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
-    command: [
-      "-address=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-      "-from=100000000",
-      "-to=100010000",
-      "Transfer",
-      "Approval"
-    ]
+    environment:
+      - CONTRACT_ADDRESS=${CONTRACT_ADDRESS}
+      - START_BLOCK=${START_BLOCK:-0}
+      - END_BLOCK=${END_BLOCK:-latest}
+      - EVENT_NAME=${EVENT_NAME:-Transfer}
+      - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
+      - INFURA_API_KEY=${INFURA_API_KEY}
+      - RPC_URL=${RPC_URL}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=geth_indexer
     depends_on:
       postgres:
         condition: service_healthy

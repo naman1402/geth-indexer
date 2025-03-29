@@ -31,6 +31,18 @@ type Event struct {
 }
 
 func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit chan bool) {
+	// Pretty print initial subscription details
+	log.Printf("\n"+
+		"╔════════════════════════════════════════════════════════════\n"+
+		"║ Starting Event Subscription\n"+
+		"║ Contract: %s\n"+
+		"║ Blocks: %d to %d\n"+
+		"║ Events: %s\n"+
+		"╚════════════════════════════════════════════════════════════\n",
+		opts.Query.Address,
+		opts.Query.From,
+		opts.Query.To,
+		strings.Join(events, ", "))
 
 	// 1. Connect to the Ethereum node
 	// Dial the Ethereum node using the provided URL
@@ -45,7 +57,7 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 	// 2. Initialize a Contract struct with the provided address and ABI
 	c := &Contract{
 		Address: common.HexToAddress(opts.Query.Address),
-		ABI:     fetchABI(opts.API.EtherscanAPI),
+		ABI:     fetchABI(),
 		events:  make(map[common.Hash]string),
 	}
 	// Polpulates the event map in Contract with event ID and their corresponding names from the ABI
@@ -78,6 +90,18 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 			// l log is received from the logCh channel, parses the log and if the event is not nil, sends the event to the eventCh channel
 		case l := <-logCh:
 			if data := parseEvents(events, l, c); data != nil {
+				// Pretty print event data
+				log.Printf("\n"+
+					"╔═══════════════ New Event ═══════════════\n"+
+					"║ Type: %s\n"+
+					"║ Block: %d\n"+
+					"║ Contract: %s\n"+
+					"║ Data: %+v\n"+
+					"╚══════════════════════════════════════════\n",
+					data.Name,
+					data.BlockNumber,
+					data.Contract.Hex(),
+					data.Data)
 				eventCh <- data
 			}
 			// for stop signal, exit the function
