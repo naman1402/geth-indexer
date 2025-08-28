@@ -26,12 +26,15 @@ func exec() int {
 	defer wg.Done()
 	wg.Add(2)
 
-	// Returns Config (Query, Database, API)
+	// Returns Config (Query, Database, API) ✅
 	options := cli.Run()
-	fmt.Printf("Loaded configuration\nRPC Node URL: %+v\nEtherscan API URL: %+v\n", options.API.EthNodeURL, options.API.EtherscanAPI)
+	fmt.Printf("Loaded configuration\nRPC Node URL (WS): %+v\nEtherscan API Key: %+v\n", options.API.EthNodeURL, options.API.EtherscanAPI)
 	fmt.Printf("Database configuration: Host=%s, Port=%d, User=%s, DBName=%s\n", options.Database.DBHost, options.Database.DBPort, options.Database.DBUser, options.Database.DBName)
 	fmt.Printf("Query configuration: Address=%s, From=%d, To=%d\n", options.Query.Address, options.Query.From, options.Query.To)
+
 	// Reading non-flags arguments
+	flag.Parse()
+	// go run test.go Transfer
 	events := flag.Args()
 	if len(events) == 0 {
 		log.Println("no events provided, please specify smart contract events")
@@ -39,8 +42,8 @@ func exec() int {
 	}
 
 	// Create a channel to receive events from the subscriber
-	// Create quitChannel to know when to terminate the program
 	eventChannel := make(chan *subsrciber.Event, channelBufferSize)
+	// Create quitChannel to know when to terminate the program
 	quitChannel := make(chan bool)
 
 	go stopSignal(quitChannel)
