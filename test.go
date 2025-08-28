@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/naman1402/geth-indexer/cli"
+	"github.com/naman1402/geth-indexer/indexer"
+	"github.com/naman1402/geth-indexer/subsrciber"
 )
 
 func exec_test() int {
@@ -23,6 +25,22 @@ func exec_test() int {
 	}
 	fmt.Printf("Events to subscribe: %+v\n", events)
 	//go run test.go Transfer
+
+	const channelBufferSize = 1000
+	eventChannel := make(chan *subsrciber.Event, channelBufferSize)
+	quitChannel := make(chan bool)
+	fmt.Printf("Created channels\neventChannel: %v\nquitChannel: %v\n", eventChannel, quitChannel)
+	// go stopSignal(quitChannel)
+	// go subsrciber.Subscribe(events, eventChannel, options, quitChannel)
+
+	// Start postgres container
+	// 	docker compose pull postgres
+	// docker compose up -d --no-deps --no-build postgres
+	_, err := indexer.Connect(options.Database)
+	if err != nil {
+		log.Println(err)
+		return 1
+	}
 	return 0
 }
 

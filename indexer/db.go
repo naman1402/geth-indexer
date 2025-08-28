@@ -23,7 +23,7 @@ func Connect(options cli.DatabaseConfig) (*sql.DB, error) {
 		log.Printf("Failed to ping database: %s", err)
 		return nil, err
 	}
-
+	fmt.Printf("Ping successful: connected to the database %s and port %d\n", options.DBName, options.DBPort)
 	return db, nil
 }
 
