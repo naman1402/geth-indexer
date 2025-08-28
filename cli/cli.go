@@ -1,18 +1,20 @@
 package cli
 
 import (
-	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
+	"github.com/subosito/gotenv"
 )
 
 // Run initializes the application configuration by reading the config.yaml file,
 // unmarshaling the configuration into a Config struct, and parsing any command-line flags.
 // It returns a pointer to the initialized Config struct.
 func Run() *Config {
+
+	_ = gotenv.Load()
 	dbConfig := DatabaseConfig{
 		DBHost:     getEnvOrDefault("DB_HOST", "localhost"),
 		DBPort:     getEnvAsIntOrDefault("DB_PORT", 5432),
@@ -39,16 +41,16 @@ func Run() *Config {
 	viper.SetConfigFile("config.yaml")
 	viper.AddConfigPath(".")
 
-	var config Config
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("failed to read config file: %v\n", err)
-	}
-	err := viper.Unmarshal(&config)
-	if err != nil {
-		log.Printf("failed to unmarshal config: %v\n", err)
-	}
+	// var config Config
+	// if err := viper.ReadInConfig(); err != nil {
+	// 	log.Printf("failed to read config file: %v\n", err)
+	// }
+	// err := viper.Unmarshal(&config)
+	// if err != nil {
+	// 	log.Printf("failed to unmarshal config: %v\n", err)
+	// }
 
-	config.Query = ParseFlags()
+	// config.Query = ParseFlags()
 	return &Config{
 		Query:    queryConfig,
 		Database: dbConfig,

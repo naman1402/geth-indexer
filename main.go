@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -16,21 +17,20 @@ import (
 const channelBufferSize = 1000
 
 // main is the entry point of the application. It calls the exec function and exits the program with the returned status code.
-func main() {
-	os.Exit(exec())
-}
+// func main() {
+// 	os.Exit(exec())
+// }
 
 func exec() int {
-
-	// WaitGroup is a collection of goroutines
-	// provides simple way to coordinate and manage the lifecycles of multiple goroutines in a concurrent program.
 	var wg sync.WaitGroup
 	defer wg.Done()
-	// Adds 2 goroutine to the wait group and ensures that wg.Done() is called when the function exits
 	wg.Add(2)
 
 	// Returns Config (Query, Database, API)
 	options := cli.Run()
+	fmt.Printf("Loaded configuration\nRPC Node URL: %+v\nEtherscan API URL: %+v\n", options.API.EthNodeURL, options.API.EtherscanAPI)
+	fmt.Printf("Database configuration: Host=%s, Port=%d, User=%s, DBName=%s\n", options.Database.DBHost, options.Database.DBPort, options.Database.DBUser, options.Database.DBName)
+	fmt.Printf("Query configuration: Address=%s, From=%d, To=%d\n", options.Query.Address, options.Query.From, options.Query.To)
 	// Reading non-flags arguments
 	events := flag.Args()
 	if len(events) == 0 {
