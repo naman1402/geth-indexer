@@ -6,34 +6,29 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/naman1402/geth-indexer/cli"
 )
 
 const etherscanURLTemplate = "https://api.etherscan.io/api?module=contract&action=getabi&address=%s&apikey=%s"
 
-type EtherscanResponse struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
-	Result  string `json:"result"`
-}
-
 // fetchABI fetches the ABI (Application Binary Interface) from the Etherscan API
-// using the provided etherscanAPI string. It returns the parsed ABI.
-func fetchABI() abi.ABI {
-	etherscanAPI := os.Getenv("ETHERSCAN_API_KEY")
+// using the provided etherscanAPI string. It returns the parsed ABI. ✅
+func fetchABI(opts *cli.Config) abi.ABI {
+	etherscanAPI := opts.API.EtherscanAPI
 	if etherscanAPI == "" {
 		log.Fatal("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
-	contractAddr := os.Getenv("CONTRACT_ADDRESS")
+	contractAddr := opts.Query.Address
 	if contractAddr == "" {
 		log.Fatal("CONTRACT_ADDRESS environment variable is not set")
 	}
 
 	url := fmt.Sprintf(etherscanURLTemplate, contractAddr, etherscanAPI)
+	fmt.Printf("Calling etherscan for ABI, URL: %s\n", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("failed to fetch ABI from etherscan: %v\n", err)

@@ -75,3 +75,7 @@ func listen(client *ethclient.Client, opts *cli.Config) ethereum.Subscription {
 	// returns ethereum.Subscription
 	return sub
 }
+
+func GetImplementationContractAddress(client *ethclient.Client, proxyAddress common.Address) (common.Address, error) {
+	return common.Address{}, nil
+}

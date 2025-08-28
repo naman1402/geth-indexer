@@ -33,8 +33,7 @@ func exec() int {
 	fmt.Printf("Query configuration: Address=%s, From=%d, To=%d\n", options.Query.Address, options.Query.From, options.Query.To)
 
 	// Reading non-flags arguments
-	flag.Parse()
-	// go run test.go Transfer
+	flag.Parse() // go run test.go Transfer
 	events := flag.Args()
 	if len(events) == 0 {
 		log.Println("no events provided, please specify smart contract events")
@@ -49,14 +48,14 @@ func exec() int {
 	go stopSignal(quitChannel)
 	go subsrciber.Subscribe(events, eventChannel, options, quitChannel)
 
-	// Connect to Postgres database using provided configuration options
+	// Connect to Postgres database using provided configuration options ✅
 	db, err := indexer.Connect(options.Database)
 	if err != nil {
 		log.Println(err)
 		return 1
 	}
 
-	// Ensure database connection is closed when the function exits
+	// Ensure database connection is closed when the function exits ✅
 	defer func() int {
 		if err := db.Close(); err != nil {
 			log.Println(err)

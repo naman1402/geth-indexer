@@ -14,80 +14,58 @@ import (
 
 const buffer = 100
 
-// Contract represents an Ethereum contract with its address, ABI, and a mapping of event IDs to event names.
-type Contract struct {
-	Address common.Address
-	ABI     abi.ABI
-	events  map[common.Hash]string
-}
-
-// Event represents an Ethereum event with its name, block number, block hash, contract address, and event data.
-type Event struct {
-	Name        string
-	BlockNumber uint64
-	BlockHash   common.Hash
-	Contract    common.Address
-	Data        map[string]interface{}
-}
-
 func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit chan bool) {
-	// Pretty print initial subscription details
-	log.Printf("\n"+
-		"╔════════════════════════════════════════════════════════════\n"+
-		"║ Starting Event Subscription\n"+
-		"║ Contract: %s\n"+
-		"║ Blocks: %d to %d\n"+
-		"║ Events: %s\n"+
-		"╚════════════════════════════════════════════════════════════\n",
-		opts.Query.Address,
-		opts.Query.From,
-		opts.Query.To,
-		strings.Join(events, ", "))
 
-	// 1. Connect to the Ethereum node
-	// Dial the Ethereum node using the provided URL
+	fmt.Println("\nSubscribing to events...")
+	fmt.Printf("\nContract Address: %s\nBlock range: %d to %d\nEvents: %s\n", opts.Query.Address, opts.Query.From, opts.Query.To, strings.Join(events, ", "))
+
+	// 1. Connecting to EVM using RPC URL
 	client, err := ethclient.Dial(opts.API.EthNodeURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Close the client connection when the function returns
 	defer client.Close()
-	fmt.Printf("Subscribing to these events on contract %s ... %s\n", opts.Query.Address, strings.Join(events, " "))
 
-	// 2. Initialize a Contract struct with the provided address and ABI
+	// fmt.Printf("Subscribing to these events on contract %s ... %s\n", opts.Query.Address, strings.Join(events, " "))
+	fmt.Println("\nConnected to RPC URL:", opts.API.EthNodeURL)
+
+	// 2. Initialize a Contract struct with the provided address and ABI ✅
 	c := &Contract{
 		Address: common.HexToAddress(opts.Query.Address),
-		ABI:     fetchABI(),
-		events:  make(map[common.Hash]string),
+		ABI:     fetchABI(opts),
+		// Initially this will be an empty mapping, populated using ABI events
+		events: make(map[common.Hash]string),
 	}
-	// Polpulates the event map in Contract with event ID and their corresponding names from the ABI
 	for _, e := range c.ABI.Events {
 		c.events[e.ID] = e.Name
 	}
-
-	// create channel of type types.Log and buffer size of buffer
+	// fmt.Printf("Contract Events Mapping: %+v\n", c.events) ✅
+	// fmt.Printf("Contract ABI fetched: %+v\n", c.ABI)✅
+	// @note the issue we are getting events of a proxy contract, we need to get the real implementation ABI
 	logCh := make(chan types.Log, buffer)
 
-	// 3. Filter Historical Logs
-	// starts goroutine that filters historical logs and sends them to logCh
-	// Ensures that historical logs are processed and sent to the log channel
+	////////////////////////////////////////////////////////////////////////////
+	// 3. Filter Historical Logs ///////////////////////////////////////////////
+	// starts goroutine that filters historical logs and sends them to logCh ///
+	// Ensures that historical logs are processed and sent to the log channel //
+	////////////////////////////////////////////////////////////////////////////
 	go func() {
 		for _, l := range filter(client, opts) {
 			logCh <- l
 		}
 	}()
 
-	// 4. Subscribe to Real-Time Logs
-	// Sets up a subscription to real-time logs from the Ethereum blockchain
+	///////////////////////////////////////////////////////////////////////////
+	// 4. Subscribe to Real-Time Logs /////////////////////////////////////////
+	// Sets up a subscription to real-time logs from the Ethereum blockchain //
+	///////////////////////////////////////////////////////////////////////////
 	sub := listen(client, opts)
 
 	// 5. Process Logs
 	for {
 		select {
-		// errors occur in the subscription, it logs the error
 		case err := <-sub.Err():
 			log.Println(err)
-			// l log is received from the logCh channel, parses the log and if the event is not nil, sends the event to the eventCh channel
 		case l := <-logCh:
 			if data := parseEvents(events, l, c); data != nil {
 				// Pretty print event data
@@ -104,7 +82,6 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 					data.Data)
 				eventCh <- data
 			}
-			// for stop signal, exit the function
 		case stop := <-quit:
 			if stop {
 				return
@@ -115,16 +92,12 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 }
 
 func parseEvents(events []string, log types.Log, c *Contract) *Event {
-	// retrieves the event's name associated with the first topic in the log's topics
-	// if event name is not found, return nil
+	// fmt.Println("\nparseEvents called")
 	name, ok := c.events[log.Topics[0]]
+	// fmt.Printf("name from topics: %s, error: %s", name, ok)
 	if !ok {
 		return nil
 	}
-	if name != "Transfer" && name != "Approval" {
-		return nil
-	}
-
 	event := ""
 
 	// iterates over the events provided the param
@@ -140,7 +113,7 @@ func parseEvents(events []string, log types.Log, c *Contract) *Event {
 	if event == "" {
 		return nil
 	}
-
+	fmt.Println("\nEvent matched:", event)
 	// decoded the log data using event name, abi
 	data, err := unpackLog(event, log.Data, c.ABI)
 	if err != nil || data == nil {
@@ -155,6 +128,7 @@ func parseEvents(events []string, log types.Log, c *Contract) *Event {
 		Contract:    log.Address,
 		Data:        data,
 	}
+	fmt.Print("\nEvent parsed: ", e)
 	return e
 }
 
