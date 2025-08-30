@@ -15,9 +15,10 @@ type Contract struct {
 type Event struct {
 	Name        string
 	BlockNumber uint64
-	BlockHash   common.Hash
-	Contract    common.Address
-	Data        map[string]interface{}
+	// BlockHash  common.Hash
+	TxnHash  common.Hash
+	Contract common.Address
+	Data     map[string]interface{}
 }
 
 type EtherscanResponse struct {

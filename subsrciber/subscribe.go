@@ -143,7 +143,7 @@ func parseEvents(events []string, log types.Log, c *Contract) *Event {
 	ev := &Event{
 		Name:        name,
 		BlockNumber: log.BlockNumber,
-		BlockHash:   log.BlockHash,
+		TxnHash:     log.TxHash,
 		Contract:    log.Address,
 		Data:        data,
 	}

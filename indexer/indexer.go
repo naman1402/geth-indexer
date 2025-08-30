@@ -58,7 +58,7 @@ func addValues(keys []string, params *subsrciber.Event) string {
 
 	values := make([]string, 0, len(keys)+4)
 	// Appending 4 default values to the slice
-	values = append(values, fmt.Sprintf("%v", params.Name), fmt.Sprintf("%v", params.BlockNumber), fmt.Sprintf("%v", params.BlockHash), fmt.Sprintf("%v", params.Contract))
+	values = append(values, fmt.Sprintf("%v", params.Name), fmt.Sprintf("%v", params.BlockNumber), fmt.Sprintf("%v", params.TxnHash), fmt.Sprintf("%v", params.Contract))
 	// corresponding value from the params.Data map and appends its formatted string representation to the values slice.
 	for _, k := range keys {
 		values = append(values, fmt.Sprintf("%v", params.Data[k]))
