@@ -2,7 +2,6 @@ package subsrciber
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/big"
 
@@ -57,15 +56,15 @@ func filter(client *ethclient.Client, opts *cli.Config, topics [][]common.Hash) 
 	}
 	// fmt.Print("Logs filtered successfully\n")
 	// fmt.Println("called the eth client with FilterLogs function, here is the output:")
-	for _, log := range logs {
-		fmt.Printf("Log: %+v\n", log)
-	}
+	// for _, log := range logs {
+	// 	fmt.Printf("Log: %+v\n", log)
+	// }
 
 	return logs
 }
 
 // ethereum.Subscription represents an event subscription where events are delivered on a data channel.
-func listen(client *ethclient.Client, opts *cli.Config) ethereum.Subscription {
+func listen(client *ethclient.Client, opts *cli.Config) (ethereum.Subscription, <-chan types.Log) {
 	// make a channel of type types.Log
 	logs := make(chan types.Log)
 	// Creates a query that sets Addresses field to a slice containing the address specified in opts, converts to common.Address
@@ -81,9 +80,9 @@ func listen(client *ethclient.Client, opts *cli.Config) ethereum.Subscription {
 		log.Fatal(err)
 	}
 	// returns ethereum.Subscription
-	return sub
+	return sub, logs
 }
 
-func GetImplementationContractAddress(client *ethclient.Client, proxyAddress common.Address) (common.Address, error) {
-	return common.Address{}, nil
-}
+// func GetImplementationContractAddress(client *ethclient.Client, proxyAddress common.Address) (common.Address, error) {
+// 	return common.Address{}, nil
+// }

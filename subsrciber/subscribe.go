@@ -1,8 +1,10 @@
 package subsrciber
 
 import (
+	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -67,27 +69,37 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 	// 4. Subscribe to Real-Time Logs /////////////////////////////////////////
 	// Sets up a subscription to real-time logs from the Ethereum blockchain //
 	///////////////////////////////////////////////////////////////////////////
-	sub := listen(client, opts)
+	sub, subLogs := listen(client, opts)
+	// fmt.Print("listen function called, the output is (sub): ", sub)
+	// fmt.Print("listen function called, the output is (subLogs): ", subLogs)
 
 	// 5. Process Logs
 	for {
 		select {
 		case err := <-sub.Err():
 			log.Println(err)
-		case l := <-logCh:
-			if data := parseEvents(events, l, c); data != nil {
-				// Pretty print event data
-				log.Printf("\n"+
-					"╔═══════════════ New Event ═══════════════\n"+
-					"║ Type: %s\n"+
-					"║ Block: %d\n"+
-					"║ Contract: %s\n"+
-					"║ Data: %+v\n"+
-					"╚══════════════════════════════════════════\n",
-					data.Name,
-					data.BlockNumber,
-					data.Contract.Hex(),
-					data.Data)
+		// case l := <-logCh:
+		// 	// fmt.Sprintln(events, l, c)
+		// 	if data := parseEvents(events, l, c); data != nil {
+		// 		// Pretty print event data
+		// 		log.Printf("\n"+
+		// 			"╔═══════════════ New Event ═══════════════\n"+
+		// 			"║ Type: %s\n"+
+		// 			"║ Block: %d\n"+
+		// 			"║ Contract: %s\n"+
+		// 			"║ Data: %+v\n"+
+		// 			"╚══════════════════════════════════════════\n",
+		// 			data.Name,
+		// 			data.BlockNumber,
+		// 			data.Contract.Hex(),
+		// 			data.Data)
+		// 		// Send the event data to the event channel
+		// 		eventCh <- data
+		// 	}
+		case liveLog := <-subLogs:
+			// fmt.Println("\nReceived log from subscription:", liveLog)
+			if data := parseEvents(events, liveLog, c); data != nil {
+				log.Println("received live log. data after parsing:", data)
 				eventCh <- data
 			}
 		case stop := <-quit:
@@ -100,58 +112,83 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 }
 
 func parseEvents(events []string, log types.Log, c *Contract) *Event {
-	// fmt.Println("\nparseEvents called")
+	// defensive: ensure topics exist
+	if len(log.Topics) == 0 {
+		return nil
+	}
+
 	name, ok := c.events[log.Topics[0]]
-	// fmt.Printf("name from topics: %s, error: %s", name, ok)
 	if !ok {
 		return nil
 	}
-	event := ""
 
-	// iterates over the events provided the param
-	// if the event name (from events param) matches the name retrieved from the contract's events map, then assign the name to event and break the loop
+	// ensure requested
+	found := false
 	for _, e := range events {
 		if e == name {
-			event = name
+			found = true
 			break
 		}
 	}
-
-	// if no event matches
-	if event == "" {
+	if !found {
+		fmt.Println("event not found in requested events")
 		return nil
 	}
-	fmt.Println("\nEvent matched:", event)
-	// decoded the log data using event name, abi
-	data, err := unpackLog(event, log.Data, c.ABI)
+
+	data, err := unpackLog(name, log.Topics, log.Data, c.ABI)
 	if err != nil || data == nil {
 		return nil
 	}
 
-	// create new object and populate it with event name, block number, block hash, contract address and unpacked data
-	e := &Event{
-		Name:        event,
+	ev := &Event{
+		Name:        name,
 		BlockNumber: log.BlockNumber,
 		BlockHash:   log.BlockHash,
 		Contract:    log.Address,
 		Data:        data,
 	}
-	fmt.Print("\nEvent parsed: ", e)
-	return e
+	// fmt.Println("events parsing done: ", *ev)
+	return ev
 }
 
-// unpackLog unpacks the event data from the provided log data and ABI, returning a map of the event parameters.
-// If the event cannot be unpacked, an error is returned.
-func unpackLog(event string, data []byte, abi abi.ABI) (map[string]interface{}, error) {
-	// mapping of string keys to interface{} values
-	logMap := make(map[string]interface{})
+func unpackLog(eventName string, topics []common.Hash, data []byte, contractABI abi.ABI) (map[string]interface{}, error) {
+	out := make(map[string]interface{})
 
-	// UnpackIntoMap unpacks a log into the provided map[string]interface{}.
-	// decodes the log data into a structured format based on the ABI
-	err := abi.UnpackIntoMap(logMap, event, data)
-	if err != nil {
-		return nil, err
+	ev, ok := contractABI.Events[eventName]
+	if !ok {
+		return nil, fmt.Errorf("event %s not found in ABI", eventName)
 	}
 
-	return logMap, nil
+	if len(data) > 0 {
+		if err := contractABI.UnpackIntoMap(out, eventName, data); err != nil {
+			return nil, err
+		}
+	}
+
+	// collect indexed params from topics (topics[0] is event id)
+	topicIdx := 1
+	for _, input := range ev.Inputs {
+		if !input.Indexed {
+			continue
+		}
+		if topicIdx >= len(topics) {
+			return nil, fmt.Errorf("missing topic for indexed arg %s", input.Name)
+		}
+		tb := topics[topicIdx].Bytes()
+		switch input.Type.T {
+		case abi.AddressTy:
+			out[input.Name] = common.BytesToAddress(tb[12:]).Hex()
+		case abi.UintTy, abi.IntTy:
+			out[input.Name] = new(big.Int).SetBytes(tb)
+		case abi.BoolTy:
+			out[input.Name] = tb[len(tb)-1] == 1
+		case abi.BytesTy, abi.StringTy:
+			out[input.Name] = "indexed-hash:" + hex.EncodeToString(tb)
+		default:
+			out[input.Name] = hex.EncodeToString(tb)
+		}
+		topicIdx++
+	}
+	// fmt.Println("unpacking log done, output: ", out)
+	return out, nil
 }
