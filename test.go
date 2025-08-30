@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/naman1402/geth-indexer/cli"
@@ -86,8 +84,10 @@ func exec_test() int {
 	// 	}
 	// }
 
-	_ = subsrciber.FetchABI(options)
+	// _ = subsrciber.FetchABI(options)
 	// fmt.Println(abi)
+	go subsrciber.Subscribe(events, eventChannel, options, quitChannel)
+
 	wg.Wait()
 	return 0
 }
@@ -96,30 +96,30 @@ func exec_test() int {
 
 // parseEtherscanProxyInfo extracts proxy flag, implementation address and ABI string from an Etherscan
 // 'getsourcecode' response payload. It returns (isProxy, implementationAddress, abiString, error).
-func parseEtherscanProxyInfo(data []byte) (bool, string, string, error) {
-	var resp struct {
-		Status  string `json:"status"`
-		Message string `json:"message"`
-		Result  []struct {
-			Proxy          string `json:"Proxy"`
-			Implementation string `json:"Implementation"`
-			ABI            string `json:"ABI"`
-		} `json:"result"`
-	}
+// func parseEtherscanProxyInfo(data []byte) (bool, string, string, error) {
+// 	var resp struct {
+// 		Status  string `json:"status"`
+// 		Message string `json:"message"`
+// 		Result  []struct {
+// 			Proxy          string `json:"Proxy"`
+// 			Implementation string `json:"Implementation"`
+// 			ABI            string `json:"ABI"`
+// 		} `json:"result"`
+// 	}
 
-	if err := json.Unmarshal(data, &resp); err != nil {
-		return false, "", "", err
-	}
-	if len(resp.Result) == 0 {
-		return false, "", "", fmt.Errorf("no result in etherscan response")
-	}
-	r := resp.Result[0]
-	isProxy := false
-	if r.Proxy == "1" || strings.EqualFold(r.Proxy, "true") {
-		isProxy = true
-	}
-	return isProxy, r.Implementation, r.ABI, nil
-}
+// 	if err := json.Unmarshal(data, &resp); err != nil {
+// 		return false, "", "", err
+// 	}
+// 	if len(resp.Result) == 0 {
+// 		return false, "", "", fmt.Errorf("no result in etherscan response")
+// 	}
+// 	r := resp.Result[0]
+// 	isProxy := false
+// 	if r.Proxy == "1" || strings.EqualFold(r.Proxy, "true") {
+// 		isProxy = true
+// 	}
+// 	return isProxy, r.Implementation, r.ABI, nil
+// }
 
 func main() {
 	os.Exit(exec_test())

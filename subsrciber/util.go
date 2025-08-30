@@ -2,6 +2,7 @@ package subsrciber
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/big"
 
@@ -21,7 +22,7 @@ var (
 
 // ethClient.Client defines typed wrappers for the Ethereum RPC API.
 // Log represents a contract log event
-func filter(client *ethclient.Client, opts *cli.Config) []types.Log {
+func filter(client *ethclient.Client, opts *cli.Config, topics [][]common.Hash) []types.Log {
 
 	// if from/to field in query is not zero, assign it to from/to variables
 	// or else set them as nil (latest block)
@@ -44,13 +45,20 @@ func filter(client *ethclient.Client, opts *cli.Config) []types.Log {
 		Addresses: []common.Address{
 			common.HexToAddress(opts.Query.Address),
 		},
+		Topics: topics,
 	}
+	// fmt.Printf("Filtering logs with query: %+v\n", query)
 
 	// FilterLogs executes a filter query.
 	// executes filter query on client with current context, retrieves logs that match the query and assign them to logs
 	logs, err := client.FilterLogs(context.Background(), query)
 	if err != nil {
 		log.Fatal(err)
+	}
+	// fmt.Print("Logs filtered successfully\n")
+	// fmt.Println("called the eth client with FilterLogs function, here is the output:")
+	for _, log := range logs {
+		fmt.Printf("Log: %+v\n", log)
 	}
 
 	return logs

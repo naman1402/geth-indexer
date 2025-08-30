@@ -32,7 +32,7 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 	// 2. Initialize a Contract struct with the provided address and ABI ✅
 	c := &Contract{
 		Address: common.HexToAddress(opts.Query.Address),
-		ABI:     FetchABI(opts),
+		ABI:     fetchABI(opts),
 		// Initially this will be an empty mapping, populated using ABI events
 		events: make(map[common.Hash]string),
 	}
@@ -40,18 +40,25 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 	for _, e := range c.ABI.Events {
 		c.events[e.ID] = e.Name
 	}
-	// fmt.Printf("Contract Events Mapping: %+v\n", c.events) ✅
+	// fmt.Printf("Contract Events Mapping: %+v\n", c.events)
 	// fmt.Printf("Contract ABI fetched: %+v\n", c.ABI)✅
-	// @note the issue we are getting events of a proxy contract, we need to get the real implementation ABI
 	logCh := make(chan types.Log, buffer)
 
 	////////////////////////////////////////////////////////////////////////////
-	// 3. Filter Historical Logs ///////////////////////////////////////////////
+	// 3. Filter Historical Logs ✅ ////////////////////////////////////////////
 	// starts goroutine that filters historical logs and sends them to logCh ///
 	// Ensures that historical logs are processed and sent to the log channel //
 	////////////////////////////////////////////////////////////////////////////
+	var topicList []common.Hash
+	for h := range c.events {
+		topicList = append(topicList, h)
+	}
+	var topics [][]common.Hash
+	if len(topicList) > 0 {
+		topics = append(topics, topicList)
+	}
 	go func() {
-		for _, l := range filter(client, opts) {
+		for _, l := range filter(client, opts, topics) {
 			logCh <- l
 		}
 	}()

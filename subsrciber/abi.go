@@ -16,7 +16,7 @@ const etherscanURLTemplate = "https://api.etherscan.io/api?module=contract&actio
 
 // fetchABI fetches the ABI (Application Binary Interface) from the Etherscan API
 // using the provided etherscanAPI string. It returns the parsed ABI. ✅
-func FetchABI(opts *cli.Config) abi.ABI {
+func fetchABI(opts *cli.Config) abi.ABI {
 	etherscanAPI := opts.API.EtherscanAPI
 	if etherscanAPI == "" {
 		log.Fatal("ETHERSCAN_API_KEY environment variable is not set")
@@ -27,7 +27,8 @@ func FetchABI(opts *cli.Config) abi.ABI {
 		log.Fatal("CONTRACT_ADDRESS environment variable is not set")
 	}
 
-	proxyResult, ActualImplementationAddress, err := getProxyInfoAndImplementation(contractAddr, etherscanAPI)
+	proxyResult, ActualImplementationAddress, _ := getProxyInfoAndImplementation(contractAddr, etherscanAPI)
+
 	if proxyResult {
 		fmt.Printf("Address: %s is a proxy contract, using implementation address: %s to get the ABI\n ", contractAddr, ActualImplementationAddress)
 		contractAddr = ActualImplementationAddress
