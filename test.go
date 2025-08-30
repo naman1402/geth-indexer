@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/naman1402/geth-indexer/cli"
@@ -46,21 +48,77 @@ func exec_test() int {
 	// 	return 1
 	// }
 
-	// etherscanAPI := options.API.EtherscanAPI
-	// if etherscanAPI == "" {
-	// 	log.Fatal("ETHERSCAN_API_KEY environment variable is not set")
-	// }
+	etherscanAPI := options.API.EtherscanAPI
+	if etherscanAPI == "" {
+		log.Fatal("ETHERSCAN_API_KEY environment variable is not set")
+	}
 
-	// contractAddr := options.Query.Address
-	// if contractAddr == "" {
-	// 	log.Fatal("CONTRACT_ADDRESS environment variable is not set")
-	// }
+	contractAddr := options.Query.Address
+	if contractAddr == "" {
+		log.Fatal("CONTRACT_ADDRESS environment variable is not set")
+	}
 	// const etherscanURLTemplate = "https://api.etherscan.io/api?module=contract&action=getabi&address=%s&apikey=%s"
-	// url := fmt.Sprintf(etherscanURLTemplate, contractAddr, etherscanAPI)
-	// fmt.Printf("Calling etherscan for ABI, URL: %s\n", url)
+	// // url := fmt.Sprintf(etherscanURLTemplate, contractAddr, etherscanAPI)
+	// const etherscanURLGetSourceCode = "https://api.etherscan.io/api?module=contract&action=getsourcecode&address=%s&apikey=%s"
+	// // fmt.Printf("Calling etherscan for ABI, URL: %s\n", url)
+	// // abi := subsrciber.FetchABI(options)
+	// // fmt.Println(abi)
+	// getSourceCodeURL := fmt.Sprintf(etherscanURLGetSourceCode, "0xB8c77482e45F1F44dE1745F52C74426C631bDD52", etherscanAPI)
+	// resp, _ := http.Get(getSourceCodeURL)
+	// // if err != nil {
+	// // 	log.Printf("failed to fetch source code from etherscan: %v\n", err)
+	// // }
+	// // defer resp.Body.Close()
+	// data, _ := io.ReadAll(resp.Body)
+	// // parse proxy info and ABI from etherscan response
+	// isProxy, implAddr, abiStr, err := parseEtherscanProxyInfo(data)
+	// if err != nil {
+	// 	log.Printf("failed to parse etherscan response: %v", err)
+	// } else {
+	// 	fmt.Printf("isProxy=%v implementation=%s\n", isProxy, implAddr)
+	// 	if abiStr != "" {
+	// 		parsedABI, err := abi.JSON(strings.NewReader(abiStr))
+	// 		if err != nil {
+	// 			log.Printf("failed to parse ABI: %v", err)
+	// 		} else {
+	// 			fmt.Printf("Parsed ABI: constructor=%v methods=%d events=%d\n", parsedABI.Constructor, len(parsedABI.Methods), len(parsedABI.Events))
+	// 		}
+	// 	}
+	// }
 
+	_ = subsrciber.FetchABI(options)
+	// fmt.Println(abi)
 	wg.Wait()
 	return 0
+}
+
+// ... helper removed; parsing is handled by parseEtherscanProxyInfo
+
+// parseEtherscanProxyInfo extracts proxy flag, implementation address and ABI string from an Etherscan
+// 'getsourcecode' response payload. It returns (isProxy, implementationAddress, abiString, error).
+func parseEtherscanProxyInfo(data []byte) (bool, string, string, error) {
+	var resp struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+		Result  []struct {
+			Proxy          string `json:"Proxy"`
+			Implementation string `json:"Implementation"`
+			ABI            string `json:"ABI"`
+		} `json:"result"`
+	}
+
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return false, "", "", err
+	}
+	if len(resp.Result) == 0 {
+		return false, "", "", fmt.Errorf("no result in etherscan response")
+	}
+	r := resp.Result[0]
+	isProxy := false
+	if r.Proxy == "1" || strings.EqualFold(r.Proxy, "true") {
+		isProxy = true
+	}
+	return isProxy, r.Implementation, r.ABI, nil
 }
 
 func main() {

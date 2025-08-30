@@ -32,10 +32,11 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 	// 2. Initialize a Contract struct with the provided address and ABI ✅
 	c := &Contract{
 		Address: common.HexToAddress(opts.Query.Address),
-		ABI:     fetchABI(opts),
+		ABI:     FetchABI(opts),
 		// Initially this will be an empty mapping, populated using ABI events
 		events: make(map[common.Hash]string),
 	}
+
 	for _, e := range c.ABI.Events {
 		c.events[e.ID] = e.Name
 	}

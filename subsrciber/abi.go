@@ -16,7 +16,7 @@ const etherscanURLTemplate = "https://api.etherscan.io/api?module=contract&actio
 
 // fetchABI fetches the ABI (Application Binary Interface) from the Etherscan API
 // using the provided etherscanAPI string. It returns the parsed ABI. ✅
-func fetchABI(opts *cli.Config) abi.ABI {
+func FetchABI(opts *cli.Config) abi.ABI {
 	etherscanAPI := opts.API.EtherscanAPI
 	if etherscanAPI == "" {
 		log.Fatal("ETHERSCAN_API_KEY environment variable is not set")
@@ -25,6 +25,14 @@ func fetchABI(opts *cli.Config) abi.ABI {
 	contractAddr := opts.Query.Address
 	if contractAddr == "" {
 		log.Fatal("CONTRACT_ADDRESS environment variable is not set")
+	}
+
+	proxyResult, ActualImplementationAddress, err := getProxyInfoAndImplementation(contractAddr, etherscanAPI)
+	if proxyResult {
+		fmt.Printf("Address: %s is a proxy contract, using implementation address: %s to get the ABI\n ", contractAddr, ActualImplementationAddress)
+		contractAddr = ActualImplementationAddress
+	} else {
+		fmt.Printf("Address: %s is not a proxy contract, using it to get the ABI\n", contractAddr)
 	}
 
 	url := fmt.Sprintf(etherscanURLTemplate, contractAddr, etherscanAPI)
@@ -59,12 +67,7 @@ func fetchABI(opts *cli.Config) abi.ABI {
 	var response EtherscanResponse
 	json.Unmarshal(data, &response)
 
-	log.Printf("\n"+
-		"┌─────────────── ABI Fetched ───────────────┐\n"+
-		"│ Status: %s\n"+
-		"│ Message: %s\n"+
-		"│ Events Found: %d\n"+
-		"└──────────────────────────────────────────┘\n",
+	log.Printf("ABI fetched: status=%s message=%s events=%d\n",
 		response.Status,
 		response.Message,
 		len(parsedABI.Events))
@@ -91,4 +94,38 @@ func unmarshalToMapping(data []byte) string {
 
 	// Returns only the "result" field containing actual ABI
 	return response.Result
+}
+
+// func fetchByteCode(opts *cli.Config) string {
+// 	return ""
+// }
+
+func getProxyInfoAndImplementation(contractAddress, etherScanAPI string) (bool, string, error) {
+	const etherscanURLGetSourceCode = "https://api.etherscan.io/api?module=contract&action=getsourcecode&address=%s&apikey=%s"
+	getSourceCodeURL := fmt.Sprintf(etherscanURLGetSourceCode, contractAddress, etherScanAPI)
+	resp, _ := http.Get(getSourceCodeURL)
+	data, _ := io.ReadAll(resp.Body)
+
+	var responseStruct struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+		Result  []struct {
+			Proxy          string `json:"Proxy"`
+			Implementation string `json:"Implementation"`
+			ABI            string `json:"ABI"`
+		} `json:"result"`
+	}
+
+	if err := json.Unmarshal(data, &responseStruct); err != nil {
+		return false, "", err
+	}
+	if len(responseStruct.Result) == 0 {
+		return false, "", fmt.Errorf("no result in etherscan response")
+	}
+	r := responseStruct.Result[0]
+	isProxy := false
+	if r.Proxy == "1" || strings.EqualFold(r.Proxy, "true") {
+		isProxy = true
+	}
+	return isProxy, r.Implementation, nil
 }
