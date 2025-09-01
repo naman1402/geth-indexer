@@ -78,28 +78,17 @@ func Subscribe(events []string, eventCh chan<- *Event, opts *cli.Config, quit ch
 		select {
 		case err := <-sub.Err():
 			log.Println(err)
-		// case l := <-logCh:
-		// 	// fmt.Sprintln(events, l, c)
-		// 	if data := parseEvents(events, l, c); data != nil {
-		// 		// Pretty print event data
-		// 		log.Printf("\n"+
-		// 			"╔═══════════════ New Event ═══════════════\n"+
-		// 			"║ Type: %s\n"+
-		// 			"║ Block: %d\n"+
-		// 			"║ Contract: %s\n"+
-		// 			"║ Data: %+v\n"+
-		// 			"╚══════════════════════════════════════════\n",
-		// 			data.Name,
-		// 			data.BlockNumber,
-		// 			data.Contract.Hex(),
-		// 			data.Data)
-		// 		// Send the event data to the event channel
-		// 		eventCh <- data
-		// 	}
+		case l := <-logCh:
+			// fmt.Sprintln(events, l, c)
+			if data := parseEvents(events, l, c); data != nil {
+				log.Printf("received historical log. txn hash: %s and event data: %+v", data.TxnHash, data.Data)
+				// Send the event data to the event channel
+				eventCh <- data
+			}
 		case liveLog := <-subLogs:
 			// fmt.Println("\nReceived log from subscription:", liveLog)
 			if data := parseEvents(events, liveLog, c); data != nil {
-				log.Println("received live log. data after parsing:", data)
+				log.Printf("received live log. txn hash: %s and event data: %+v", data.TxnHash, data.Data)
 				eventCh <- data
 			}
 		case stop := <-quit:
