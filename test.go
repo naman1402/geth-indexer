@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 
 	"github.com/naman1402/geth-indexer/cli"
@@ -123,6 +122,6 @@ func exec_test() int {
 // 	return isProxy, r.Implementation, r.ABI, nil
 // }
 
-func main() {
-	os.Exit(exec_test())
-}
+// func main() {
+// 	os.Exit(exec_test())
+// }

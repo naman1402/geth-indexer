@@ -2,3 +2,5 @@ docs/
 config.yaml
 .env
 *.env
+proxyContract.json
+config.example.yaml

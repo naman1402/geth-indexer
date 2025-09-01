@@ -17,9 +17,9 @@ import (
 const channelBufferSize = 1000
 
 // main is the entry point of the application. It calls the exec function and exits the program with the returned status code.
-// func main() {
-// 	os.Exit(exec())
-// }
+func main() {
+	os.Exit(exec())
+}
 
 func exec() int {
 	var wg sync.WaitGroup
