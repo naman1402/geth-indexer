@@ -3,6 +3,8 @@ package indexer
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"math/big"
 	"strings"
 
 	"github.com/naman1402/geth-indexer/subsrciber"
@@ -17,8 +19,10 @@ func Index(eventCh chan *subsrciber.Event, db *sql.DB, quit chan bool) {
 	for {
 		select {
 		case e := <-eventCh:
-			query := generateQuery(strings.ToLower(e.Name), e)
-			go executeQuery(db, query)
+			query, args := generateQuery(strings.ToLower(e.Name), e)
+			// log.Printf("[Index] received event from eventCh, creating query and executing it. Query: %s, Args: %v", query, args)
+			log.Printf("[Index] received event from eventCh, creating query and executing it")
+			go executeQuery(db, query, args...)
 		case q := <-quit:
 			if q {
 				return
@@ -29,40 +33,50 @@ func Index(eventCh chan *subsrciber.Event, db *sql.DB, quit chan bool) {
 
 // generateQuery constructs an SQL INSERT statement for the given table and event parameters.
 // It generates the column names and values based on the event data, and returns the complete SQL query.
-func generateQuery(table string, param *subsrciber.Event) string {
+func generateQuery(table string, param *subsrciber.Event) (string, []interface{}) {
 
-	columns := len(param.Data)
-	// used to store  the names of the fields in the event data
-	fieldSlice := make([]string, 0, columns)
-	// primary fields, represents basic information about the event that will be included in the SQL query
-	fields := "name, blockNumber, blockHash, contract, "
-
-	// iterate through the params.Data and append to the fieldSlice
-	// results in a complete list of all the fields that will be included in the SQL query
+	// collect field names from event data (iteration order is indeterminate)
+	fieldSlice := make([]string, 0, len(param.Data))
 	for field := range param.Data {
 		fieldSlice = append(fieldSlice, field)
 	}
-	// concatenate the fields and fieldSlice into a single string
-	fields += strings.Join(fieldSlice, " ,")
 
-	// constructs a string of values corresponding to the fields, which will be used in the VALUES clause of the SQL query.
-	// Unlike fieldSlice, this will contain the actual values from the event data.
-	values := addValues(fieldSlice, param)
-	return fmt.Sprintf(`INSERT INTO %s (%s) VALUES (%s)`, table, fields, values)
+	// base columns
+	allCols := []string{"name", "blockNumber", "txnHash", "contract"}
+	allCols = append(allCols, fieldSlice...)
 
-}
+	// quoted column list to avoid reserved word collisions
+	colsQuoted := make([]string, 0, len(allCols))
+	for _, c := range allCols {
+		// quote identifiers to allow reserved words like from/to as column names
+		colsQuoted = append(colsQuoted, fmt.Sprintf(`"%s"`, c))
+	}
+	colsStr := strings.Join(colsQuoted, ", ")
 
-// addValues constructs a comma-separated string of values from the given keys and event parameters.
-// The resulting string can be used in an SQL INSERT statement.
-func addValues(keys []string, params *subsrciber.Event) string {
+	total := len(allCols)
+	placeholders := make([]string, 0, total)
+	for i := 1; i <= total; i++ {
+		placeholders = append(placeholders, fmt.Sprintf("$%d", i))
+	}
+	phStr := strings.Join(placeholders, ", ")
 
-	values := make([]string, 0, len(keys)+4)
-	// Appending 4 default values to the slice
-	values = append(values, fmt.Sprintf("%v", params.Name), fmt.Sprintf("%v", params.BlockNumber), fmt.Sprintf("%v", params.TxnHash), fmt.Sprintf("%v", params.Contract))
-	// corresponding value from the params.Data map and appends its formatted string representation to the values slice.
-	for _, k := range keys {
-		values = append(values, fmt.Sprintf("%v", params.Data[k]))
+	// build args in the same order as allCols
+	args := make([]interface{}, 0, total)
+	args = append(args, param.Name)
+	args = append(args, param.BlockNumber)
+	args = append(args, fmt.Sprintf("%s", param.TxnHash))
+	args = append(args, fmt.Sprintf("%s", param.Contract))
+	for _, k := range fieldSlice {
+		v := param.Data[k]
+		switch val := v.(type) {
+		case *big.Int:
+			args = append(args, val.String())
+		default:
+			args = append(args, val)
+		}
 	}
 
-	return strings.Join(values, " ,")
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) ON CONFLICT (\"txnHash\", \"contract\", \"from\", \"to\", \"value\") DO NOTHING", table, colsStr, phStr)
+	return query, args
+
 }

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/naman1402/geth-indexer/cli"
+	"github.com/naman1402/geth-indexer/indexer"
 	"github.com/naman1402/geth-indexer/subsrciber"
 )
 
@@ -40,11 +41,11 @@ func exec_test() int {
 	// Start postgres container
 	// 	docker compose pull postgres
 	// docker compose up -d --no-deps --no-build postgres
-	// _, err := indexer.Connect(options.Database)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return 1
-	// }
+	_, err := indexer.Connect(options.Database)
+	if err != nil {
+		log.Println(err)
+		return 1
+	}
 
 	etherscanAPI := options.API.EtherscanAPI
 	if etherscanAPI == "" {
@@ -87,6 +88,7 @@ func exec_test() int {
 	// _ = subsrciber.FetchABI(options)
 	// fmt.Println(abi)
 	go subsrciber.Subscribe(events, eventChannel, options, quitChannel)
+	// go indexer.Index(eventChannel, db, quitChannel)
 
 	wg.Wait()
 	return 0
